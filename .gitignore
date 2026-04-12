@@ -3,3 +3,12 @@ __pycache__/
 *.pyc
 .env
 .DS_Store
+
+# Scraped data and local database
+data/
+*.db
+*.db-journal
+
+# Frontend build
+frontend/node_modules/
+frontend/dist/

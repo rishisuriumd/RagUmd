@@ -1,0 +1,156 @@
+"""SQLite schema for UMD Dining data.
+
+Tables:
+    dining_halls      – static reference (3 rows)
+    food_items        – deduplicated by label_url
+    food_nutrition    – per-item nutrition with indexed numeric columns
+    menu_entries      – daily schedule (hall × date × meal × station × item)
+    food_item_tags    – dietary/allergen tags per food item
+    dining_info       – general dining info pages
+    users             – registered users (email + password)
+    food_logs         – per-user macro tracker entries
+"""
+
+from __future__ import annotations
+
+import sqlite3
+from pathlib import Path
+
+DEFAULT_DB_PATH = Path(__file__).resolve().parent.parent.parent / "umd_dining.db"
+
+DINING_HALLS_SEED = [
+    ("16", "South Campus"),
+    ("19", "Yahentamitsi Dining Hall"),
+    ("51", "251 North"),
+]
+
+_SCHEMA_SQL = """\
+CREATE TABLE IF NOT EXISTS dining_halls (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    location_num TEXT    NOT NULL UNIQUE,
+    name         TEXT    NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS food_items (
+    id        INTEGER PRIMARY KEY AUTOINCREMENT,
+    name      TEXT    NOT NULL,
+    label_url TEXT    UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS food_nutrition (
+    id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+    food_item_id          INTEGER NOT NULL UNIQUE REFERENCES food_items(id),
+    serving_size          TEXT,
+    serving_per_container TEXT,
+    calories              INTEGER,
+    protein_g             REAL,
+    total_fat_g           REAL,
+    total_carbs_g         REAL,
+    sodium_mg             REAL,
+    ingredients           TEXT,
+    allergens             TEXT,
+    nutrients_json        TEXT,
+    scraped_at            TEXT    NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS menu_entries (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    hall_id      INTEGER NOT NULL REFERENCES dining_halls(id),
+    date         TEXT    NOT NULL,
+    meal         TEXT    NOT NULL,
+    station      TEXT    NOT NULL,
+    food_item_id INTEGER NOT NULL REFERENCES food_items(id),
+    scraped_at   TEXT    NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS food_item_tags (
+    food_item_id INTEGER NOT NULL REFERENCES food_items(id),
+    tag          TEXT    NOT NULL,
+    PRIMARY KEY (food_item_id, tag)
+);
+
+CREATE INDEX IF NOT EXISTS idx_menu_hall_date_meal
+    ON menu_entries (hall_id, date, meal);
+
+CREATE INDEX IF NOT EXISTS idx_menu_food_item
+    ON menu_entries (food_item_id);
+
+CREATE INDEX IF NOT EXISTS idx_food_nutrition_item
+    ON food_nutrition (food_item_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_menu_unique
+    ON menu_entries (hall_id, date, meal, station, food_item_id);
+
+CREATE TABLE IF NOT EXISTS dining_info (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    slug       TEXT    NOT NULL UNIQUE,
+    title      TEXT    NOT NULL,
+    url        TEXT    NOT NULL,
+    content    TEXT    NOT NULL,
+    scraped_at TEXT    NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    email         TEXT    NOT NULL UNIQUE,
+    password_hash TEXT    NOT NULL,
+    display_name  TEXT,
+    created_at    TEXT    NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS food_logs (
+    id           INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id      INTEGER NOT NULL REFERENCES users(id),
+    food_item_id INTEGER NOT NULL REFERENCES food_items(id),
+    servings     REAL    NOT NULL DEFAULT 1.0,
+    meal_type    TEXT    NOT NULL,
+    logged_date  TEXT    NOT NULL,
+    created_at   TEXT    NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_food_logs_user_date
+    ON food_logs (user_id, logged_date);
+
+CREATE TABLE IF NOT EXISTS chat_sessions (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id),
+    title      TEXT    NOT NULL DEFAULT 'New Chat',
+    created_at TEXT    NOT NULL,
+    updated_at TEXT    NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id INTEGER NOT NULL REFERENCES chat_sessions(id) ON DELETE CASCADE,
+    role       TEXT    NOT NULL,
+    content    TEXT    NOT NULL,
+    created_at TEXT    NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_sessions_user
+    ON chat_sessions (user_id, updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session
+    ON chat_messages (session_id, id);
+"""
+
+
+def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
+    """Open (or create) the SQLite database and return a connection."""
+    path = Path(db_path) if db_path else DEFAULT_DB_PATH
+    conn = sqlite3.connect(str(path))
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.execute("PRAGMA foreign_keys=ON")
+    conn.row_factory = sqlite3.Row
+    return conn
+
+
+def init_db(conn: sqlite3.Connection) -> None:
+    """Create all tables/indexes and seed dining_halls."""
+    conn.executescript(_SCHEMA_SQL)
+    for loc_num, name in DINING_HALLS_SEED:
+        conn.execute(
+            "INSERT OR IGNORE INTO dining_halls (location_num, name) VALUES (?, ?)",
+            (loc_num, name),
+        )
+    conn.commit()

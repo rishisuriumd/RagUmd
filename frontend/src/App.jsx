@@ -1,0 +1,46 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Navbar from './components/Navbar';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
+import ChatPage from './pages/ChatPage';
+import MenuPage from './pages/MenuPage';
+import RecipePage from './pages/RecipePage';
+import TrackerPage from './pages/TrackerPage';
+
+function ProtectedRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="p-8 text-center text-umd-gray-dark">Loading...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
+function AppRoutes() {
+  const { user, loading } = useAuth();
+  if (loading) return null;
+
+  return (
+    <>
+      <Navbar />
+      <Routes>
+        <Route path="/login" element={user ? <Navigate to="/chat" /> : <LoginPage />} />
+        <Route path="/register" element={user ? <Navigate to="/chat" /> : <RegisterPage />} />
+        <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
+        <Route path="/menu" element={<ProtectedRoute><MenuPage /></ProtectedRoute>} />
+        <Route path="/recipe" element={<ProtectedRoute><RecipePage /></ProtectedRoute>} />
+        <Route path="/tracker" element={<ProtectedRoute><TrackerPage /></ProtectedRoute>} />
+        <Route path="*" element={<Navigate to={user ? '/chat' : '/login'} replace />} />
+      </Routes>
+    </>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+      </AuthProvider>
+    </BrowserRouter>
+  );
+}
