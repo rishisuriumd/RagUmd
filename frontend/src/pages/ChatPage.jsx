@@ -78,7 +78,7 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-[calc(100vh-5.5rem)] relative">
-      {/* Sidebar overlay backdrop (mobile) */}
+      {/* backdrop */}
       {sidebarOpen && (
         <div
           className="md:hidden fixed inset-0 bg-black/30 z-20"
@@ -86,7 +86,7 @@ export default function ChatPage() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* sidebar */}
       <div className={`
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         ${sidebarOpen ? 'md:w-64' : 'md:w-0'}
@@ -134,7 +134,7 @@ export default function ChatPage() {
         </div>
       </div>
 
-      {/* Main chat area */}
+      {/* chat */}
       <div className="flex-1 flex flex-col min-w-0">
         <div className="px-3 py-2 border-b border-umd-gray bg-white flex items-center gap-2">
           <button

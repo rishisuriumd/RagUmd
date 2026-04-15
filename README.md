@@ -1,159 +1,89 @@
-# 🐢 TerpDining — UMD Dining Assistant
+# 🐢 TerpDining
 
-A full-stack web app that helps University of Maryland students navigate campus dining. It scrapes the UMD Nutrition website daily, stores structured data in SQLite, and serves it through a FastAPI backend and React frontend — themed to UMD's official brand.
+UMD dining hall app. Lets you check menus, track macros, get recipe ideas, and ask questions about dining — all from one place.
 
----
+## What it does
 
-## Features
+- **Menu** — see what's at each dining hall by meal/station. Badges show dietary stuff (vegan, halal, allergens etc). Only shows today + future dates
+- **Chat** — ask questions about menus, nutrition, hours, whatever. Remembers your conversation
+- **Recipes** — pick a dining hall and meal, it'll suggest recipes you can actually make from what's available
+- **Tracker** — log food with portion sizes that make sense (slices of pizza, scoops of ice cream, not just "servings"). Donut chart shows your macros
 
-### Smart Chat
-Ask natural-language questions about menus, allergens, nutrition facts, and dining policies. Chat sessions persist so you can pick up where you left off.
+## Stack
 
-### Menu Browser
-View today's menu for every dining hall, organized by meal and station. Each item displays color-coded dietary and allergen badges (Vegan, Vegetarian, Halal Friendly, Dairy, Gluten, Nuts, etc.) with a tap-to-open icon legend. Date navigation is restricted to today and future dates only.
-
-### Recipe Creator
-Pick a dining hall, meal, cuisine preference, and dietary goals. The app pulls the *actual* menu items available and generates creative meal combinations with full macro breakdowns. Follow up with tweaks in a chat thread.
-
-### Macro Tracker
-Log what you ate with context-aware portion sizes — pizza by the slice, chicken by the piece, soup by the bowl. An interactive donut chart visualizes your daily macros (protein, fat, carbs) with hover/tap highlighting. Track per-meal and daily nutrition totals.
-
----
-
-## Tech Stack
-
-```
-Scraper → SQLite → Backend API → React Frontend
-```
-
-| Layer | Tech |
+| | |
 |---|---|
-| Scraping | `requests` + `BeautifulSoup4` with retry/backoff |
-| Database | SQLite (normalized: halls, items, nutrition, menus, tags) |
-| Backend | FastAPI with JWT auth, CORS, session-based chat |
-| Frontend | React 18 + Vite + Tailwind CSS v4 |
-| Auth | JWT (HS256) with `bcrypt` password hashing |
+| Backend | FastAPI, SQLite, JWT auth, bcrypt |
+| Frontend | React, Vite, Tailwind v4 |
+| Scraping | BeautifulSoup, requests |
+| Data | nutrition.umd.edu |
 
----
-
-## UI & Design
-
-- **UMD Brand Theming** — Maryland Red (#E21833), Gold (#FFD200), official gray palette
-- **Typography** — Overpass, Barlow Condensed (hero titles), Crimson Text, Source Sans 3
-- **Responsive** — Hamburger menu on mobile, collapsible sidebars, wrapped pill filters, stacked layouts on small screens
-- **Dietary Badges** — Color-coded circles matching UMD's official nutrition site (11 badge types with legend popup)
-- **Interactive Charts** — SVG donut chart with hover-to-highlight macros and synced card animations
-
----
-
-## Project Structure
+## Structure
 
 ```
-├── server.py               # FastAPI entry point
-├── run_scraper.py           # Scrape menus + nutrition
-├── requirements.txt         # Python dependencies
-├── .env.example             # Environment variable template
-│
-├── src/
-│   ├── scraping/            # Web scraper + HTML parser for nutrition.umd.edu
-│   ├── db/                  # SQLite schema, loader, and seeder
-│   ├── tools/               # Query functions (menu, nutrition, filters, dining info)
-│   └── api/                 # FastAPI routers (auth, chat, menu, recipe, tracker)
-│
-└── frontend/
-    ├── index.html           # Entry HTML with Google Fonts
-    └── src/
-        ├── index.css        # Tailwind config, UMD design tokens, utility classes
-        ├── App.jsx          # Root component with routing
-        ├── pages/           # Chat, Menu, Recipe, Tracker, Login, Register
-        ├── components/      # Navbar, ChatMessage, FoodSearch, DailySummary, etc.
-        └── context/         # Auth context provider
+src/
+├── scraping/     # pulls menu + nutrition data from umd site
+├── db/           # sqlite schema, seeding
+├── tools/        # query helpers for menu/nutrition lookups
+├── agent/        # handles chat routing and responses
+└── api/          # fastapi routes (auth, chat, menu, recipe, tracker)
+
+frontend/src/
+├── pages/        # Chat, Menu, Recipe, Tracker, Login, Register
+├── components/   # Navbar, FoodSearch, DailySummary, etc
+└── context/      # auth provider
 ```
 
----
+## Running it
 
-## Setup
-
-### Prerequisites
-
-- Python 3.11+
-- Node.js 18+
-- API key for your LLM provider
-
-### 1. Clone & install backend
+Need Python 3.11+, Node 18+, and an OpenAI key.
 
 ```bash
+# clone
 git clone https://github.com/rishisuriumd/RagUmd.git
 cd RagUmd
 
+# backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-```
 
-### 2. Configure environment
-
-```bash
+# env
 cp .env.example .env
-# Fill in your API keys
-```
+# put your api key in .env
 
-### 3. Scrape dining data
-
-```bash
+# scrape the menu data
 python run_scraper.py
+
+# frontend
+cd frontend && npm install && cd ..
+
+# run both
+python -m uvicorn server:app --reload   # terminal 1
+cd frontend && npm run dev              # terminal 2
 ```
 
-### 4. Install frontend
+Then go to http://localhost:5173
 
-```bash
-cd frontend
-npm install
-cd ..
-```
+## Env vars
 
-### 5. Run the app
-
-```bash
-# Terminal 1 — Backend (port 8000)
-python -m uvicorn server:app --reload
-
-# Terminal 2 — Frontend (port 5173)
-cd frontend && npm run dev
-```
-
-Open [http://localhost:5173](http://localhost:5173), create an account, and start exploring.
-
----
-
-## Environment Variables
-
-| Variable | Description |
+| Var | What |
 |---|---|
-| `OPENAI_API_KEY` | LLM provider API key (required) |
-| `LANGSMITH_API_KEY` | Tracing key (optional) |
-| `LANGSMITH_PROJECT` | Tracing project name (optional) |
-| `LANGSMITH_TRACING` | Enable tracing (optional) |
+| `OPENAI_API_KEY` | required |
+| `LANGSMITH_API_KEY` | optional, for tracing |
+| `LANGSMITH_PROJECT` | optional |
 
----
+## Endpoints
 
-## API Endpoints
-
-| Method | Path | Auth | Description |
+| Method | Path | Auth? | |
 |---|---|---|---|
-| `POST` | `/api/auth/register` | — | Create account |
-| `POST` | `/api/auth/login` | — | Log in, get JWT |
-| `GET` | `/api/auth/me` | Bearer | Current user profile |
-| `GET` | `/api/menu/browse?dt=` | — | Browse menu by date |
-| `GET` | `/api/nutrition/search?q=` | — | Search food nutrition |
-| `GET` | `/api/chat/sessions` | Bearer | List chat sessions |
-| `POST` | `/api/chat` | Bearer | Send chat message |
-| `POST` | `/api/recipe` | Bearer | Generate / continue recipe |
-| `POST` | `/api/tracker/logs` | Bearer | Log food |
-| `GET` | `/api/tracker/summary?date=` | Bearer | Daily macro summary |
-
----
-
-## Authors
-
-Built for CMSC at the University of Maryland, College Park.
+| POST | `/api/auth/register` | no | create account |
+| POST | `/api/auth/login` | no | get token |
+| GET | `/api/auth/me` | yes | who am i |
+| GET | `/api/menu/browse?dt=` | no | menu for a date |
+| GET | `/api/nutrition/search?q=` | no | search foods |
+| GET | `/api/chat/sessions` | yes | list chats |
+| POST | `/api/chat` | yes | send message |
+| POST | `/api/recipe` | yes | make recipe |
+| POST | `/api/tracker/logs` | yes | log food |
+| GET | `/api/tracker/summary?date=` | yes | daily macros |

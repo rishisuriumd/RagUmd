@@ -1,4 +1,4 @@
-"""Auth endpoints: register, login, me."""
+"""Auth routes — register, login, me."""
 
 from __future__ import annotations
 

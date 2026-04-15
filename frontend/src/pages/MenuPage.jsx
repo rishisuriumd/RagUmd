@@ -282,7 +282,7 @@ export default function MenuPage() {
                 <button onClick={() => setDate(today)} className="text-xs text-umd-red font-semibold hover:underline ml-1">Today</button>
               )}
 
-              {/* Legend button */}
+              {/* legend */}
               <div className="relative ml-1">
                 <button
                   onClick={() => setLegendOpen(!legendOpen)}

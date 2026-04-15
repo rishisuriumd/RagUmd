@@ -164,7 +164,7 @@ export default function FoodSearch({ mealType, onLog }) {
 
       {selected && (
         <div className="mt-3 space-y-3">
-          {/* Portion type grid — only shows relevant options */}
+          {/* portions */}
           {availablePortions.length > 0 && (
             <div>
               <div className="text-xs font-semibold text-umd-black mb-2">How much?</div>
@@ -187,7 +187,7 @@ export default function FoodSearch({ mealType, onLog }) {
             </div>
           )}
 
-          {/* Serving amount + log button */}
+          {/* servings + log btn */}
           <div className="flex items-center gap-2">
             <select
               value={servings}
@@ -208,7 +208,7 @@ export default function FoodSearch({ mealType, onLog }) {
             </button>
           </div>
 
-          {/* Nutrition preview */}
+          {/* preview */}
           <div className="bg-umd-gray-light rounded-lg px-3 py-2 text-xs text-umd-body">
             Per {portionLabel}:{' '}
             <span className="font-semibold text-umd-black">

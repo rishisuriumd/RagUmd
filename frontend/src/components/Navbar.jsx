@@ -16,7 +16,7 @@ export default function Navbar() {
 
   return (
     <>
-      {/* Red global header bar */}
+      {/* top bar */}
       <div className="bg-umd-red h-11 flex items-center px-4 z-50 relative">
         <div className="umd-container w-full flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 text-white font-extrabold text-lg uppercase tracking-wide shrink-0">
@@ -24,7 +24,7 @@ export default function Navbar() {
             TerpDining
           </Link>
 
-          {/* Hamburger (mobile) */}
+          {/* hamburger */}
           <button
             className="md:hidden p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
             onClick={() => setMobileOpen((o) => !o)}
@@ -43,7 +43,7 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* White nav bar (desktop) */}
+      {/* desktop nav */}
       <nav className="bg-white border-b border-umd-gray shadow-sm hidden md:block">
         <div className="umd-container px-4 h-11 flex items-center justify-between">
           {user ? (
@@ -70,7 +70,7 @@ export default function Navbar() {
         </div>
       </nav>
 
-      {/* Mobile dropdown */}
+      {/* mobile menu */}
       {mobileOpen && (
         <div className="md:hidden bg-umd-red-dark border-t border-white/10 px-4 py-3 flex flex-col gap-1 z-50 relative">
           {user ? (

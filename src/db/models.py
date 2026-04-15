@@ -1,15 +1,4 @@
-"""SQLite schema for UMD Dining data.
-
-Tables:
-    dining_halls      – static reference (3 rows)
-    food_items        – deduplicated by label_url
-    food_nutrition    – per-item nutrition with indexed numeric columns
-    menu_entries      – daily schedule (hall × date × meal × station × item)
-    food_item_tags    – dietary/allergen tags per food item
-    dining_info       – general dining info pages
-    users             – registered users (email + password)
-    food_logs         – per-user macro tracker entries
-"""
+"""DB schema + init."""
 
 from __future__ import annotations
 
@@ -137,7 +126,7 @@ CREATE INDEX IF NOT EXISTS idx_chat_messages_session
 
 
 def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
-    """Open (or create) the SQLite database and return a connection."""
+    """Get a db connection, creating tables if needed."""
     path = Path(db_path) if db_path else DEFAULT_DB_PATH
     conn = sqlite3.connect(str(path))
     conn.execute("PRAGMA journal_mode=WAL")
@@ -147,7 +136,7 @@ def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
 
 
 def init_db(conn: sqlite3.Connection) -> None:
-    """Create all tables/indexes and seed dining_halls."""
+    """Run schema + seed halls."""
     conn.executescript(_SCHEMA_SQL)
     for loc_num, name in DINING_HALLS_SEED:
         conn.execute(

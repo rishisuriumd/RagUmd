@@ -1,4 +1,4 @@
-"""Shared FastAPI dependencies: DB connection, current-user extraction."""
+"""DB + auth deps."""
 
 from __future__ import annotations
 

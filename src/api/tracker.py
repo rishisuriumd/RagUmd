@@ -1,4 +1,4 @@
-"""Macro tracker endpoints: log food, list logs, delete, daily summary."""
+"""Tracker routes — log food, get logs, daily summary."""
 
 from __future__ import annotations
 
@@ -42,7 +42,7 @@ class DailySummary(BaseModel):
 
 
 def _ensure_portion_label_column(conn):
-    """Add portion_label column if it doesn't exist yet."""
+    """Migration — add portion_label if missing."""
     cols = [row[1] for row in conn.execute("PRAGMA table_info(food_logs)").fetchall()]
     if "portion_label" not in cols:
         conn.execute("ALTER TABLE food_logs ADD COLUMN portion_label TEXT")

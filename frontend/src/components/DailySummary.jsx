@@ -33,7 +33,7 @@ export default function DailySummary({ totals }) {
   return (
     <div className="umd-card rounded-2xl p-6">
       <div className="flex flex-col items-center gap-6">
-        {/* Donut chart */}
+        {/* donut */}
         <div className="relative">
           <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
             {total > 0 ? (
@@ -85,7 +85,7 @@ export default function DailySummary({ totals }) {
           </div>
         </div>
 
-        {/* Macro cards */}
+        {/* cards */}
         <div className="grid grid-cols-3 gap-3 w-full">
           {sliceData.map((s) => {
             const pct = total > 0 ? Math.round(s.pct * 100) : 0;
