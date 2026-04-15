@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/tracker", tags=["tracker"])
 class LogFoodRequest(BaseModel):
     food_item_id: int
     servings: float = 1.0
+    portion_label: str | None = None
     meal_type: str  # Breakfast, Lunch, Dinner, Snack
     logged_date: str | None = None  # YYYY-MM-DD, defaults to today
 
@@ -25,6 +26,7 @@ class FoodLogOut(BaseModel):
     food_item_id: int
     food_name: str
     servings: float
+    portion_label: str | None
     meal_type: str
     logged_date: str
     calories: float | None
@@ -39,8 +41,18 @@ class DailySummary(BaseModel):
     totals: dict
 
 
+def _ensure_portion_label_column(conn):
+    """Add portion_label column if it doesn't exist yet."""
+    cols = [row[1] for row in conn.execute("PRAGMA table_info(food_logs)").fetchall()]
+    if "portion_label" not in cols:
+        conn.execute("ALTER TABLE food_logs ADD COLUMN portion_label TEXT")
+        conn.commit()
+
+
 @router.post("/logs", status_code=status.HTTP_201_CREATED)
 def log_food(body: LogFoodRequest, user=Depends(get_current_user), conn=Depends(get_db)):
+    _ensure_portion_label_column(conn)
+
     food = conn.execute("SELECT id, name FROM food_items WHERE id = ?", (body.food_item_id,)).fetchone()
     if not food:
         raise HTTPException(status_code=404, detail="Food item not found")
@@ -49,9 +61,9 @@ def log_food(body: LogFoodRequest, user=Depends(get_current_user), conn=Depends(
     now = datetime.now(timezone.utc).isoformat()
 
     cursor = conn.execute(
-        "INSERT INTO food_logs (user_id, food_item_id, servings, meal_type, logged_date, created_at) "
-        "VALUES (?, ?, ?, ?, ?, ?)",
-        (user["id"], body.food_item_id, body.servings, body.meal_type, log_date, now),
+        "INSERT INTO food_logs (user_id, food_item_id, servings, portion_label, meal_type, logged_date, created_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?)",
+        (user["id"], body.food_item_id, body.servings, body.portion_label, body.meal_type, log_date, now),
     )
     conn.commit()
     return {"id": cursor.lastrowid, "food_name": food["name"]}
@@ -63,12 +75,14 @@ def get_logs(
     user=Depends(get_current_user),
     conn=Depends(get_db),
 ):
+    _ensure_portion_label_column(conn)
+
     log_date = date or __import__("datetime").date.today().isoformat()
 
     rows = conn.execute(
         """\
         SELECT fl.id, fl.food_item_id, fi.name AS food_name,
-               fl.servings, fl.meal_type, fl.logged_date,
+               fl.servings, fl.portion_label, fl.meal_type, fl.logged_date,
                fn.calories, fn.protein_g, fn.total_fat_g, fn.total_carbs_g
         FROM food_logs fl
         JOIN food_items fi ON fi.id = fl.food_item_id
@@ -87,6 +101,7 @@ def get_logs(
             "food_item_id": r["food_item_id"],
             "food_name": r["food_name"],
             "servings": servings,
+            "portion_label": r["portion_label"],
             "meal_type": r["meal_type"],
             "logged_date": r["logged_date"],
             "calories": round(r["calories"] * servings, 1) if r["calories"] else None,

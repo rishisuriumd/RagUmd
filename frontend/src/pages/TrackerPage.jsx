@@ -10,9 +10,11 @@ function localDateStr(d = new Date()) {
 }
 
 export default function TrackerPage() {
-  const [date, setDate] = useState(localDateStr());
+  const today = localDateStr();
+  const [date, setDate] = useState(today);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const isToday = date === today;
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
@@ -35,6 +37,7 @@ export default function TrackerPage() {
     await apiPost('/api/tracker/logs', {
       food_item_id: item.food_item_id,
       servings: item.servings,
+      portion_label: item.portion_label || null,
       meal_type: item.meal_type,
       logged_date: date,
     });
@@ -44,6 +47,20 @@ export default function TrackerPage() {
   async function handleDelete(logId) {
     await apiDelete(`/api/tracker/logs/${logId}`);
     fetchLogs();
+  }
+
+  function goBack() {
+    const d = new Date(date + 'T12:00:00');
+    d.setDate(d.getDate() - 1);
+    setDate(localDateStr(d));
+  }
+
+  function goForward() {
+    if (isToday) return;
+    const d = new Date(date + 'T12:00:00');
+    d.setDate(d.getDate() + 1);
+    const next = localDateStr(d);
+    setDate(next > today ? today : next);
   }
 
   const totals = logs.reduce(
@@ -57,18 +74,11 @@ export default function TrackerPage() {
   );
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 space-y-5">
+    <div className="umd-container max-w-3xl px-4 py-6 space-y-5">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-umd-black">Macro Tracker</h1>
+        <h1 className="text-4xl umd-hero-title text-umd-black">Macro Tracker</h1>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              const d = new Date(date + 'T12:00:00');
-              d.setDate(d.getDate() - 1);
-              setDate(localDateStr(d));
-            }}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-          >
+          <button onClick={goBack} className="p-2 hover:bg-umd-gray-light rounded-lg transition-colors">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
@@ -76,26 +86,24 @@ export default function TrackerPage() {
           <input
             type="date"
             value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-umd-red"
+            max={today}
+            onChange={(e) => {
+              const v = e.target.value;
+              setDate(v > today ? today : v);
+            }}
+            className="border border-umd-gray rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-umd-red"
           />
           <button
-            onClick={() => {
-              const d = new Date(date + 'T12:00:00');
-              d.setDate(d.getDate() + 1);
-              setDate(localDateStr(d));
-            }}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            onClick={goForward}
+            disabled={isToday}
+            className={`p-2 rounded-lg transition-colors ${isToday ? 'opacity-30 cursor-not-allowed' : 'hover:bg-umd-gray-light'}`}
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
-          {date !== localDateStr() && (
-            <button
-              onClick={() => setDate(localDateStr())}
-              className="text-xs text-umd-red font-semibold hover:underline ml-1"
-            >
+          {!isToday && (
+            <button onClick={() => setDate(today)} className="text-xs text-umd-red font-semibold hover:underline ml-1">
               Today
             </button>
           )}
@@ -105,7 +113,7 @@ export default function TrackerPage() {
       <DailySummary totals={totals} />
 
       {loading ? (
-        <div className="text-center py-12 text-umd-gray-dark">Loading...</div>
+        <div className="text-center py-12 text-umd-body">Loading...</div>
       ) : (
         MEALS.map((meal) => (
           <MealSection

@@ -99,13 +99,14 @@ CREATE TABLE IF NOT EXISTS users (
 );
 
 CREATE TABLE IF NOT EXISTS food_logs (
-    id           INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id      INTEGER NOT NULL REFERENCES users(id),
-    food_item_id INTEGER NOT NULL REFERENCES food_items(id),
-    servings     REAL    NOT NULL DEFAULT 1.0,
-    meal_type    TEXT    NOT NULL,
-    logged_date  TEXT    NOT NULL,
-    created_at   TEXT    NOT NULL
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id       INTEGER NOT NULL REFERENCES users(id),
+    food_item_id  INTEGER NOT NULL REFERENCES food_items(id),
+    servings      REAL    NOT NULL DEFAULT 1.0,
+    portion_label TEXT,
+    meal_type     TEXT    NOT NULL,
+    logged_date   TEXT    NOT NULL,
+    created_at    TEXT    NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_food_logs_user_date

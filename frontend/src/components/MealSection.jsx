@@ -15,18 +15,18 @@ export default function MealSection({ title, logs, onLog, onDelete }) {
   );
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div className="umd-card rounded-xl">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+        className="w-full flex items-center justify-between px-5 py-4 hover:bg-umd-gray-light transition-colors"
       >
         <div className="flex items-center gap-3">
           <h3 className="font-bold text-umd-black">{title}</h3>
-          <span className="text-xs text-umd-gray-dark bg-umd-gray px-2 py-0.5 rounded-full">
+          <span className="text-xs text-umd-body bg-umd-gray-light px-2 py-0.5 rounded-full">
             {logs.length} item{logs.length !== 1 ? 's' : ''}
           </span>
         </div>
-        <div className="flex items-center gap-4 text-xs text-umd-gray-dark">
+        <div className="flex items-center gap-4 text-xs text-umd-body">
           <span><span className="font-semibold text-umd-black">{Math.round(totals.calories)}</span> cal</span>
           <span>{Math.round(totals.protein_g)}g P</span>
           <span>{Math.round(totals.total_fat_g)}g F</span>
@@ -41,13 +41,13 @@ export default function MealSection({ title, logs, onLog, onDelete }) {
       </button>
 
       {expanded && (
-        <div className="border-t border-gray-100 px-5 py-4 space-y-3">
+        <div className="border-t border-umd-gray px-5 py-4 space-y-3">
           {logs.map((log) => (
-            <div key={log.id} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-b-0">
+            <div key={log.id} className="flex items-center justify-between py-2 border-b border-umd-gray-light last:border-b-0">
               <div>
                 <div className="text-sm font-medium text-umd-black">{log.food_name}</div>
-                <div className="text-xs text-umd-gray-dark mt-0.5">
-                  {log.servings} serving{log.servings !== 1 ? 's' : ''} · {Math.round(log.calories || 0)} cal · {Math.round(log.protein_g || 0)}g P · {Math.round(log.total_fat_g || 0)}g F · {Math.round(log.total_carbs_g || 0)}g C
+                <div className="text-xs text-umd-body mt-0.5">
+                  {log.portion_label || `${log.servings} serving${log.servings !== 1 ? 's' : ''}`} · {Math.round(log.calories || 0)} cal · {Math.round(log.protein_g || 0)}g P · {Math.round(log.total_fat_g || 0)}g F · {Math.round(log.total_carbs_g || 0)}g C
                 </div>
               </div>
               <button

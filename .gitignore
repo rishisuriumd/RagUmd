@@ -12,3 +12,13 @@ data/
 # Frontend build
 frontend/node_modules/
 frontend/dist/
+
+# Local environments
+.nodeenv/
+
+# SQLite WAL files
+*.db-shm
+*.db-wal
+
+# iOS app (separate branch)
+ios/

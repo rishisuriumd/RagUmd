@@ -48,7 +48,7 @@ def get_current_user(
     except (JWTError, ValueError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
 
-    row = conn.execute("SELECT id, email, display_name FROM users WHERE id = ?", (user_id,)).fetchone()
+    row = conn.execute("SELECT id, email FROM users WHERE id = ?", (user_id,)).fetchone()
     if row is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
-    return {"id": row["id"], "email": row["email"], "display_name": row["display_name"]}
+    return {"id": row["id"], "email": row["email"]}
