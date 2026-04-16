@@ -1,15 +1,25 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { apiPost, apiGet, apiDelete } from '../api';
 import ChatMessage from '../components/ChatMessage';
+import { useNavigationState } from '../context/NavigationStateContext';
 
 export default function ChatPage() {
+  const navigate = useNavigate();
+  const { chat, patchChat } = useNavigationState();
   const [sessions, setSessions] = useState([]);
-  const [activeSession, setActiveSession] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
+  const [activeSession, setActiveSession] = useState(() => chat.activeSession);
+  const [messages, setMessages] = useState(() =>
+    Array.isArray(chat.messages) ? [...chat.messages] : []
+  );
+  const [input, setInput] = useState(() => chat.input ?? '');
   const [loading, setLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
+  const [sidebarOpen, setSidebarOpen] = useState(() => chat.sidebarOpen);
   const bottomRef = useRef(null);
+
+  useEffect(() => {
+    patchChat({ messages, activeSession, input, sidebarOpen });
+  }, [messages, activeSession, input, sidebarOpen, patchChat]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -37,6 +47,7 @@ export default function ChatPage() {
   function handleNewChat() {
     setActiveSession(null);
     setMessages([]);
+    patchChat({ activeSession: null, messages: [], input: '' });
   }
 
   async function handleDeleteSession(id) {
@@ -44,6 +55,7 @@ export default function ChatPage() {
     if (activeSession === id) {
       setActiveSession(null);
       setMessages([]);
+      patchChat({ activeSession: null, messages: [] });
     }
     fetchSessions();
   }
@@ -66,6 +78,10 @@ export default function ChatPage() {
       setActiveSession(data.session_id);
       setMessages((prev) => [...prev, { role: 'assistant', content: data.reply }]);
       fetchSessions();
+      for (const a of data.client_actions || []) {
+        if (a.type === 'navigate' && a.path) navigate(a.path);
+        if (a.type === 'favorites_updated') window.dispatchEvent(new CustomEvent('favorites-updated'));
+      }
     } catch (err) {
       setMessages((prev) => [
         ...prev,
@@ -156,7 +172,7 @@ export default function ChatPage() {
               <div className="text-5xl mb-4">🐢</div>
               <h2 className="text-xl font-bold text-umd-black mb-2">TerpDining Assistant</h2>
               <p className="text-umd-body text-sm max-w-sm">
-                Ask me about dining hall menus, nutrition facts, allergens, dining plans, and more.
+                Ask about menus, save favorites, open other tabs, nutrition, dining plans, and more.
               </p>
               <div className="mt-6 flex flex-wrap gap-2 justify-center">
                 {[

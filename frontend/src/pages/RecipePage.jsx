@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { apiPost, apiGet, apiDelete } from '../api';
 import ChatMessage from '../components/ChatMessage';
+import { useNavigationState } from '../context/NavigationStateContext';
 
 const HALLS = ['South Campus', 'Yahentamitsi Dining Hall', '251 North'];
 const MEALS = ['Breakfast', 'Lunch', 'Dinner'];
@@ -12,20 +13,48 @@ function todayStr() {
 }
 
 export default function RecipePage() {
+  const { recipe, patchRecipe } = useNavigationState();
   const [sessions, setSessions] = useState([]);
-  const [activeSession, setActiveSession] = useState(null);
-  const [messages, setMessages] = useState([]);
+  const [activeSession, setActiveSession] = useState(() => recipe.activeSession);
+  const [messages, setMessages] = useState(() => [...(recipe.messages || [])]);
   const [loading, setLoading] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 768);
-  const [showForm, setShowForm] = useState(true);
-  const [followUp, setFollowUp] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(() => recipe.sidebarOpen);
+  const [showForm, setShowForm] = useState(() => recipe.showForm ?? true);
+  const [followUp, setFollowUp] = useState(() => recipe.followUp ?? '');
   const bottomRef = useRef(null);
 
-  const [cuisine, setCuisine] = useState('');
-  const [goals, setGoals] = useState([]);
-  const [hall, setHall] = useState(HALLS[0]);
-  const [meal, setMeal] = useState(MEALS[1]);
-  const [dt, setDt] = useState(todayStr());
+  const [cuisine, setCuisine] = useState(() => recipe.cuisine ?? '');
+  const [goals, setGoals] = useState(() => recipe.goals ?? []);
+  const [hall, setHall] = useState(() => recipe.hall ?? HALLS[0]);
+  const [meal, setMeal] = useState(() => recipe.meal ?? MEALS[1]);
+  const [dt, setDt] = useState(() => recipe.dt ?? todayStr());
+
+  useEffect(() => {
+    patchRecipe({
+      activeSession,
+      messages,
+      sidebarOpen,
+      showForm,
+      followUp,
+      cuisine,
+      goals,
+      hall,
+      meal,
+      dt,
+    });
+  }, [
+    activeSession,
+    messages,
+    sidebarOpen,
+    showForm,
+    followUp,
+    cuisine,
+    goals,
+    hall,
+    meal,
+    dt,
+    patchRecipe,
+  ]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -58,6 +87,13 @@ export default function RecipePage() {
     setShowForm(true);
     setCuisine('');
     setGoals([]);
+    patchRecipe({
+      activeSession: null,
+      messages: [],
+      showForm: true,
+      cuisine: '',
+      goals: [],
+    });
   }
 
   async function handleDeleteSession(id) {

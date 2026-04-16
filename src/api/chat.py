@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
+from src.agent.chat_context import chat_context_run
 from src.api.deps import get_current_user, get_db
 
 router = APIRouter(prefix="/api", tags=["chat"])
@@ -32,6 +34,7 @@ class ChatResponse(BaseModel):
     reply: str
     question_type: str | None = None
     hall: str | None = None
+    client_actions: list[dict[str, Any]] = []
 
 
 class SessionOut(BaseModel):
@@ -121,16 +124,22 @@ def chat(body: ChatRequest, user=Depends(get_current_user), conn=Depends(get_db)
     messages = [{"role": m["role"], "content": m["content"]} for m in prev_msgs]
 
     agent = _get_agent()
-    result = agent.invoke({"messages": messages})
+    with chat_context_run(user["id"], conn) as action_bucket:
+        result = agent.invoke({"messages": messages})
+    actions = list(action_bucket)
 
     reply = ""
     for msg in reversed(result["messages"]):
         if hasattr(msg, "content") and hasattr(msg, "type") and msg.type != "human":
-            reply = msg.content
-            break
+            c = msg.content
+            if isinstance(c, str) and c.strip():
+                reply = c
+                break
         elif hasattr(msg, "content") and not hasattr(msg, "type"):
-            reply = msg.content
-            break
+            c = msg.content
+            if isinstance(c, str) and c.strip():
+                reply = c
+                break
 
     conn.execute(
         "INSERT INTO chat_messages (session_id, role, content, created_at) VALUES (?, ?, ?, ?)",
@@ -147,4 +156,5 @@ def chat(body: ChatRequest, user=Depends(get_current_user), conn=Depends(get_db)
         reply=reply,
         question_type=result.get("question_type"),
         hall=result.get("hall"),
+        client_actions=actions,
     )

@@ -10,7 +10,7 @@ from typing_extensions import TypedDict
 
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
-    question_type: Optional[str]  # "policy" | "menu"
+    question_type: Optional[str]  # "policy" | "menu" | "app"
     hall: Optional[str]
     date: Optional[str]
     meal: Optional[str]

@@ -16,6 +16,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from src.api.auth import router as auth_router
 from src.api.chat import router as chat_router
+from src.api.favorites import router as favorites_router
 from src.api.menu_browse import router as menu_router
 from src.api.nutrition_search import router as nutrition_router
 from src.api.recipe import router as recipe_router
@@ -34,6 +35,7 @@ app.add_middleware(
 
 app.include_router(auth_router)
 app.include_router(chat_router)
+app.include_router(favorites_router)
 app.include_router(menu_router)
 app.include_router(nutrition_router)
 app.include_router(recipe_router)

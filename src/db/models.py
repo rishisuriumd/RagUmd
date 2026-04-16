@@ -122,13 +122,23 @@ CREATE INDEX IF NOT EXISTS idx_chat_sessions_user
 
 CREATE INDEX IF NOT EXISTS idx_chat_messages_session
     ON chat_messages (session_id, id);
+
+CREATE TABLE IF NOT EXISTS user_favorite_foods (
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    food_name  TEXT    NOT NULL,
+    created_at TEXT    NOT NULL,
+    PRIMARY KEY (user_id, food_name)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_favorites_user
+    ON user_favorite_foods (user_id);
 """
 
 
 def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
     """Get a db connection, creating tables if needed."""
     path = Path(db_path) if db_path else DEFAULT_DB_PATH
-    conn = sqlite3.connect(str(path))
+    conn = sqlite3.connect(str(path), check_same_thread=False)
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
     conn.row_factory = sqlite3.Row
@@ -143,4 +153,22 @@ def init_db(conn: sqlite3.Connection) -> None:
             "INSERT OR IGNORE INTO dining_halls (location_num, name) VALUES (?, ?)",
             (loc_num, name),
         )
+    conn.commit()
+    _ensure_user_favorites_table(conn)
+
+
+def _ensure_user_favorites_table(conn: sqlite3.Connection) -> None:
+    """Migration for DBs created before user_favorite_foods existed."""
+    conn.execute(
+        """\
+CREATE TABLE IF NOT EXISTS user_favorite_foods (
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    food_name  TEXT    NOT NULL,
+    created_at TEXT    NOT NULL,
+    PRIMARY KEY (user_id, food_name)
+)"""
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_user_favorites_user ON user_favorite_foods (user_id)"
+    )
     conn.commit()

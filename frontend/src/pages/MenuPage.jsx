@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { apiGet } from '../api';
+import { apiGet, apiPost, apiDelete } from '../api';
+import { useNavigationState } from '../context/NavigationStateContext';
 
 const MEAL_ORDER = ['Breakfast', 'Lunch', 'Dinner'];
 
@@ -95,16 +96,27 @@ function LegendPanel({ open, onClose }) {
   );
 }
 
-function ItemRow({ item }) {
+function ItemRow({ item, isFav, onToggleFav }) {
   return (
-    <div className="px-4 py-1.5 flex items-center justify-between">
-      <span className="text-sm text-umd-black">{item.name}</span>
+    <div className="px-4 py-1.5 flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2 min-w-0">
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleFav(item.name); }}
+          className="flex-shrink-0 p-0.5 transition-colors"
+          title={isFav ? 'Remove from favorites' : 'Add to favorites'}
+        >
+          <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill={isFav ? '#e21833' : 'none'} stroke={isFav ? '#e21833' : '#d1d5db'} strokeWidth={2}>
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+          </svg>
+        </button>
+        <span className="text-sm text-umd-black truncate">{item.name}</span>
+      </div>
       <ItemBadges tags={item.tags} />
     </div>
   );
 }
 
-function StationGroup({ station, items }) {
+function StationGroup({ station, items, favorites, onToggleFav }) {
   const [open, setOpen] = useState(true);
   const sorted = useMemo(() => [...items].sort((a, b) => a.name.localeCompare(b.name)), [items]);
 
@@ -123,7 +135,9 @@ function StationGroup({ station, items }) {
       </button>
       {open && (
         <div className="divide-y divide-umd-gray-light">
-          {sorted.map((item, i) => <ItemRow key={i} item={item} />)}
+          {sorted.map((item, i) => (
+            <ItemRow key={i} item={item} isFav={favorites.has(item.name)} onToggleFav={onToggleFav} />
+          ))}
         </div>
       )}
     </div>
@@ -179,16 +193,155 @@ function FilterBar({ includeTags, excludeTags, onToggleInclude, onToggleExclude,
   );
 }
 
+function FavoritesAlert({ data, favorites }) {
+  const matches = useMemo(() => {
+    if (!data || favorites.size === 0) return [];
+    const found = [];
+    for (const [hall, meals] of Object.entries(data.halls)) {
+      for (const [meal, stations] of Object.entries(meals)) {
+        for (const [station, items] of Object.entries(stations)) {
+          for (const item of items) {
+            if (favorites.has(item.name)) {
+              found.push({ name: item.name, hall, meal, station });
+            }
+          }
+        }
+      }
+    }
+    const unique = [];
+    const seen = new Set();
+    for (const f of found) {
+      const key = `${f.name}__${f.hall}__${f.meal}`;
+      if (!seen.has(key)) { seen.add(key); unique.push(f); }
+    }
+    return unique;
+  }, [data, favorites]);
+
+  if (matches.length === 0) return null;
+
+  return (
+    <div className="rounded-xl border border-pink-200 bg-pink-50/60 px-4 py-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <svg className="w-4 h-4 text-red-500 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+        </svg>
+        <span className="text-sm font-semibold text-red-800">
+          {matches.length === 1 ? 'A favorite is on the menu today!' : `${matches.length} favorites on the menu today!`}
+        </span>
+      </div>
+      <div className="space-y-1">
+        {matches.map((m, i) => (
+          <div key={i} className="flex items-baseline gap-1.5 text-xs">
+            <span className="font-semibold text-umd-black">{m.name}</span>
+            <span className="text-umd-gray-dark">— {m.hall}, {m.meal}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function FavoritesManager({ favorites, onRemove, onClose }) {
+  const sorted = useMemo(() => [...favorites].sort(), [favorites]);
+
+  return (
+    <div className="umd-card rounded-xl p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-bold text-umd-black">Your Favorites ({sorted.length})</span>
+        <button onClick={onClose} className="text-umd-gray-dark hover:text-umd-black p-0.5">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+      {sorted.length === 0 ? (
+        <p className="text-xs text-umd-body py-2">No favorites yet. Tap the heart next to any menu item to add it.</p>
+      ) : (
+        <div className="space-y-1 max-h-48 overflow-y-auto">
+          {sorted.map((name) => (
+            <div key={name} className="flex items-center justify-between py-1">
+              <span className="text-sm text-umd-black">{name}</span>
+              <button onClick={() => onRemove(name)} className="text-umd-gray-dark hover:text-red-500 p-0.5">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MenuPage() {
   const today = localDateStr();
-  const [date, setDate] = useState(today);
+  const { menu, patchMenu } = useNavigationState();
+  const date = menu.date ?? today;
+  const setDate = (v) => patchMenu({ date: v });
+  const activeHall = menu.activeHall;
+  const setActiveHall = (h) => patchMenu({ activeHall: h });
+  const activeMeal = menu.activeMeal;
+  const setActiveMeal = (m) => patchMenu({ activeMeal: m });
+  const includeTags = menu.includeTags;
+  const excludeTags = menu.excludeTags;
+  const legendOpen = menu.legendOpen;
+  const setLegendOpen = (v) => patchMenu({ legendOpen: typeof v === 'function' ? v(menu.legendOpen) : v });
+  const showFavManager = menu.showFavManager;
+  const setShowFavManager = (v) => patchMenu({ showFavManager: typeof v === 'function' ? v(menu.showFavManager) : v });
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeHall, setActiveHall] = useState(null);
-  const [activeMeal, setActiveMeal] = useState(null);
-  const [includeTags, setIncludeTags] = useState([]);
-  const [excludeTags, setExcludeTags] = useState([]);
-  const [legendOpen, setLegendOpen] = useState(false);
+  const [favorites, setFavorites] = useState(() => new Set());
+
+  const refreshFavorites = useCallback(async () => {
+    try {
+      const rows = await apiGet('/api/favorites');
+      setFavorites(new Set(rows.map((r) => r.name)));
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const rows = await apiGet('/api/favorites');
+        let next = new Set(rows.map((r) => r.name));
+        try {
+          const raw = localStorage.getItem('menu_favorites');
+          if (raw) {
+            const old = JSON.parse(raw);
+            for (const n of old) {
+              if (typeof n === 'string' && n && !next.has(n)) {
+                await apiPost('/api/favorites', { name: n }).catch(() => {});
+                next.add(n);
+              }
+            }
+            localStorage.removeItem('menu_favorites');
+          }
+        } catch { /* ignore migration */ }
+        setFavorites(next);
+      } catch { /* ignore */ }
+    })();
+    const onEvt = () => { refreshFavorites(); };
+    window.addEventListener('favorites-updated', onEvt);
+    return () => window.removeEventListener('favorites-updated', onEvt);
+  }, [refreshFavorites]);
+
+  async function toggleFav(name) {
+    const had = favorites.has(name);
+    try {
+      if (had) await apiDelete(`/api/favorites/${encodeURIComponent(name)}`);
+      else await apiPost('/api/favorites', { name });
+      await refreshFavorites();
+    } catch { /* ignore */ }
+  }
+
+  async function removeFav(name) {
+    try {
+      await apiDelete(`/api/favorites/${encodeURIComponent(name)}`);
+      await refreshFavorites();
+    } catch { /* ignore */ }
+  }
 
   const fetchMenu = useCallback(async () => {
     setLoading(true);
@@ -205,12 +358,20 @@ export default function MenuPage() {
     if (data && activeHall && data.halls[activeHall]) {
       const meals = Object.keys(data.halls[activeHall]);
       const ordered = MEAL_ORDER.filter((m) => meals.includes(m));
-      if (!activeMeal || !ordered.includes(activeMeal)) setActiveMeal(ordered[0] || null);
+      if (!activeMeal || !ordered.includes(activeMeal)) patchMenu({ activeMeal: ordered[0] || null });
     }
-  }, [activeHall, data]);
+  }, [activeHall, data, activeMeal, patchMenu]);
 
-  function toggleInclude(tag) { setIncludeTags((p) => p.includes(tag) ? p.filter((t) => t !== tag) : [...p, tag]); }
-  function toggleExclude(tag) { setExcludeTags((p) => p.includes(tag) ? p.filter((t) => t !== tag) : [...p, tag]); }
+  function toggleInclude(tag) {
+    patchMenu({
+      includeTags: includeTags.includes(tag) ? includeTags.filter((t) => t !== tag) : [...includeTags, tag],
+    });
+  }
+  function toggleExclude(tag) {
+    patchMenu({
+      excludeTags: excludeTags.includes(tag) ? excludeTags.filter((t) => t !== tag) : [...excludeTags, tag],
+    });
+  }
 
   const filteredStations = useMemo(() => {
     if (!data || !activeHall || !activeMeal) return {};
@@ -282,8 +443,19 @@ export default function MenuPage() {
                 <button onClick={() => setDate(today)} className="text-xs text-umd-red font-semibold hover:underline ml-1">Today</button>
               )}
 
+              {/* favorites */}
+              <button
+                onClick={() => setShowFavManager((o) => !o)}
+                className={`p-1.5 sm:p-2 rounded-lg border transition-colors ${showFavManager ? 'bg-red-500 text-white border-red-500' : 'border-umd-gray text-umd-gray-dark hover:border-red-400 hover:text-red-500'}`}
+                title="My favorites"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill={favorites.size > 0 ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={2}>
+                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                </svg>
+              </button>
+
               {/* legend */}
-              <div className="relative ml-1">
+              <div className="relative">
                 <button
                   onClick={() => setLegendOpen(!legendOpen)}
                   className={`p-1.5 sm:p-2 rounded-lg border transition-colors ${legendOpen ? 'bg-umd-red text-white border-umd-red' : 'border-umd-gray text-umd-gray-dark hover:border-umd-red hover:text-umd-red'}`}
@@ -307,6 +479,12 @@ export default function MenuPage() {
             ))}
           </div>
 
+          <FavoritesAlert data={data} favorites={favorites} />
+
+          {showFavManager && (
+            <FavoritesManager favorites={favorites} onRemove={removeFav} onClose={() => setShowFavManager(false)} />
+          )}
+
           {meals.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {meals.map((m) => (
@@ -320,7 +498,7 @@ export default function MenuPage() {
 
           <FilterBar includeTags={includeTags} excludeTags={excludeTags}
             onToggleInclude={toggleInclude} onToggleExclude={toggleExclude}
-            onClear={() => { setIncludeTags([]); setExcludeTags([]); }} />
+            onClear={() => { patchMenu({ includeTags: [], excludeTags: [] }); }} />
 
           {(includeTags.length > 0 || excludeTags.length > 0) && (
             <div className="text-xs text-umd-body">
@@ -331,7 +509,7 @@ export default function MenuPage() {
           {Object.keys(filteredStations).length > 0 ? (
             <div className="space-y-2">
               {Object.keys(filteredStations).sort().map((station) => (
-                <StationGroup key={station} station={station} items={filteredStations[station]} />
+                <StationGroup key={station} station={station} items={filteredStations[station]} favorites={favorites} onToggleFav={toggleFav} />
               ))}
             </div>
           ) : (

@@ -12,6 +12,8 @@ from typing import Optional
 
 from langchain_core.tools import tool
 
+from src.agent.tools_user import USER_APP_TOOLS
+
 
 @tool
 def get_menu(
@@ -160,6 +162,12 @@ def lookup_dining_info(query: str) -> str:
     return "\n\n---\n\n".join(parts)
 
 
-MENU_TOOLS = [get_menu, filter_items_by_diet, get_item_nutrition, search_items]
-POLICY_TOOLS = [lookup_dining_info]
-ALL_TOOLS = MENU_TOOLS + POLICY_TOOLS
+MENU_TOOLS = [get_menu, filter_items_by_diet, get_item_nutrition, search_items] + USER_APP_TOOLS
+POLICY_TOOLS = [lookup_dining_info] + USER_APP_TOOLS
+ALL_TOOLS = [
+    get_menu,
+    filter_items_by_diet,
+    get_item_nutrition,
+    search_items,
+    lookup_dining_info,
+] + USER_APP_TOOLS
