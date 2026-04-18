@@ -30,8 +30,6 @@ DINING_HALLS: dict[str, str] = {
     "51": "251 North",
 }
 
-MEALS = ["Breakfast", "Lunch", "Dinner"]
-
 DATA_DIR = Path("data")
 
 REQUEST_DELAY = 0.3

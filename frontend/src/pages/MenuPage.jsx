@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { apiGet, apiPost, apiDelete } from '../api';
 import { useNavigationState } from '../context/NavigationStateContext';
 
-const MEAL_ORDER = ['Breakfast', 'Lunch', 'Dinner'];
+const MEAL_ORDER = ['Breakfast', 'Brunch', 'Lunch', 'Dinner'];
 
 const INCLUDE_TAGS = ['vegan', 'vegetarian', 'HalalFriendly'];
 const EXCLUDE_TAGS = [

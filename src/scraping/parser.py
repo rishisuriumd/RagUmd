@@ -15,7 +15,26 @@ BASE_URL = "https://nutrition.umd.edu/"
 
 MEALS = ["Breakfast", "Lunch", "Dinner"]
 
+# UMD uses 3 tabs (Breakfast / Lunch / Dinner) on most days and 2 tabs (Brunch / Dinner) on some weekends.
+_DEFAULT_MEALS_BY_COUNT: dict[int, list[str]] = {
+    2: ["Brunch", "Dinner"],
+    3: ["Breakfast", "Lunch", "Dinner"],
+}
+
 _NUTRIENT_RE = re.compile(r"^(.+?)\s*(\d[\d,.]*\s*\w+)$")
+
+
+def _meal_labels_for_tab_panes(soup: Tag, n_panes: int) -> list[str]:
+    """Match each tab-pane to a meal name using nav tab text, with UMD fallbacks."""
+    tablist = soup.find("ul", class_="nav-tabs")
+    if tablist:
+        names = [a.get_text(strip=True) for a in tablist.find_all("a", class_="nav-link")]
+        names = [n for n in names if n]
+        if len(names) == n_panes:
+            return names
+    if n_panes in _DEFAULT_MEALS_BY_COUNT:
+        return list(_DEFAULT_MEALS_BY_COUNT[n_panes])
+    return [f"Meal {i + 1}" for i in range(n_panes)]
 
 
 # ------------------------------------------------------------------
@@ -67,13 +86,16 @@ def parse_meal_pane(pane: Tag) -> list[dict[str, Any]]:
 
 def parse_menu_page(soup: Tag, dining_hall: str, location_num: str, dt_iso: str) -> dict[str, Any]:
     """Parse the full menu page soup into a structured dict."""
-    tab_panes = soup.find_all("div", class_="tab-pane")
+    tab_content = soup.find("div", class_="tab-content")
+    if tab_content:
+        tab_panes = tab_content.find_all("div", class_="tab-pane")
+    else:
+        tab_panes = soup.find_all("div", class_="tab-pane")
+
+    meal_labels = _meal_labels_for_tab_panes(soup, len(tab_panes))
     meals: dict[str, list[dict[str, Any]]] = {}
-    for i, meal_name in enumerate(MEALS):
-        if i < len(tab_panes):
-            meals[meal_name] = parse_meal_pane(tab_panes[i])
-        else:
-            meals[meal_name] = []
+    for meal_name, pane in zip(meal_labels, tab_panes):
+        meals[meal_name] = parse_meal_pane(pane)
 
     return {
         "dining_hall": dining_hall,
