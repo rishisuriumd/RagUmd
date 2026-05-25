@@ -88,6 +88,44 @@ def get_goals(user=Depends(get_current_user), conn=Depends(get_db)):
     }
 
 
+class GoalsRequest(BaseModel):
+    calories: int = 0
+    protein_g: float = 0
+    total_fat_g: float = 0
+    total_carbs_g: float = 0
+
+
+@router.put("/goals")
+def set_goals(body: GoalsRequest, user=Depends(get_current_user), conn=Depends(get_db)):
+    """Upsert the current user's daily macro goals."""
+    _ensure_user_goals_table(conn)
+    calories = max(0, body.calories)
+    protein_g = max(0.0, body.protein_g)
+    total_fat_g = max(0.0, body.total_fat_g)
+    total_carbs_g = max(0.0, body.total_carbs_g)
+    now = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        """\
+        INSERT INTO user_goals (user_id, calories, protein_g, total_fat_g, total_carbs_g, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            calories      = excluded.calories,
+            protein_g     = excluded.protein_g,
+            total_fat_g   = excluded.total_fat_g,
+            total_carbs_g = excluded.total_carbs_g,
+            updated_at    = excluded.updated_at
+        """,
+        (user["id"], calories, protein_g, total_fat_g, total_carbs_g, now),
+    )
+    conn.commit()
+    return {
+        "calories": calories,
+        "protein_g": protein_g,
+        "total_fat_g": total_fat_g,
+        "total_carbs_g": total_carbs_g,
+    }
+
+
 @router.post("/logs", status_code=status.HTTP_201_CREATED)
 def log_food(body: LogFoodRequest, user=Depends(get_current_user), conn=Depends(get_db)):
     _ensure_portion_label_column(conn)
