@@ -57,7 +57,13 @@ export default function Navbar() {
                   <Link to="/tracker" className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActive('/tracker') ? 'bg-umd-red text-white' : 'text-umd-body hover:bg-umd-gray-light'}`}>Tracker</Link>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-umd-body text-sm truncate max-w-[120px]">{user.email.split('@')[0]}</span>
+                  <Link
+                    to="/settings"
+                    className={`text-sm truncate max-w-[140px] hover:underline ${isActive('/settings') ? 'text-umd-red font-semibold' : 'text-umd-body hover:text-umd-red'}`}
+                    title="Settings"
+                  >
+                    {user.email.split('@')[0]}
+                  </Link>
                   <button onClick={logout} className="text-umd-gray-dark hover:text-umd-red text-sm underline whitespace-nowrap">
                     Logout
                   </button>
@@ -82,6 +88,7 @@ export default function Navbar() {
               <Link to="/menu" onClick={() => setMobileOpen(false)} className={linkClass('/menu')}>Menu</Link>
               <Link to="/recipe" onClick={() => setMobileOpen(false)} className={linkClass('/recipe')}>Recipe Creator</Link>
               <Link to="/tracker" onClick={() => setMobileOpen(false)} className={linkClass('/tracker')}>Macro Tracker</Link>
+              <Link to="/settings" onClick={() => setMobileOpen(false)} className={linkClass('/settings')}>Settings</Link>
               <div className="mt-2 pt-2 border-t border-white/20 flex items-center justify-between">
                 <span className="text-white/80 text-sm">{user.email.split('@')[0]}</span>
                 <button onClick={() => { logout(); setMobileOpen(false); }} className="text-white/70 hover:text-white text-sm underline">

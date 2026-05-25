@@ -9,6 +9,7 @@ import ChatPage from './pages/ChatPage';
 import MenuPage from './pages/MenuPage';
 import RecipePage from './pages/RecipePage';
 import TrackerPage from './pages/TrackerPage';
+import SettingsPage from './pages/SettingsPage';
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
@@ -31,6 +32,7 @@ function AppRoutes() {
         <Route path="/menu" element={<ProtectedRoute><MenuPage /></ProtectedRoute>} />
         <Route path="/recipe" element={<ProtectedRoute><RecipePage /></ProtectedRoute>} />
         <Route path="/tracker" element={<ProtectedRoute><TrackerPage /></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to={user ? '/chat' : '/login'} replace />} />
       </Routes>
     </>
