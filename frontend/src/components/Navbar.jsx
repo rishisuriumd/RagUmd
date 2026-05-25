@@ -8,6 +8,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (path) => location.pathname === path;
+  const hideAuthLinks = location.pathname === '/register';
 
   const linkClass = (path) =>
     `px-3 py-2 rounded-lg text-sm font-bold uppercase tracking-wide transition-colors whitespace-nowrap ${
@@ -44,34 +45,36 @@ export default function Navbar() {
       </div>
 
       {/* desktop nav */}
-      <nav className="bg-white border-b border-umd-gray shadow-sm hidden md:block">
-        <div className="umd-container px-4 h-11 flex items-center justify-between">
-          {user ? (
-            <>
-              <div className="flex items-center gap-1">
-                <Link to="/chat" className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActive('/chat') ? 'bg-umd-red text-white' : 'text-umd-body hover:bg-umd-gray-light'}`}>Chat</Link>
-                <Link to="/menu" className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActive('/menu') ? 'bg-umd-red text-white' : 'text-umd-body hover:bg-umd-gray-light'}`}>Menu</Link>
-                <Link to="/recipe" className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActive('/recipe') ? 'bg-umd-red text-white' : 'text-umd-body hover:bg-umd-gray-light'}`}>Recipes</Link>
-                <Link to="/tracker" className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActive('/tracker') ? 'bg-umd-red text-white' : 'text-umd-body hover:bg-umd-gray-light'}`}>Tracker</Link>
+      {!(hideAuthLinks && !user) && (
+        <nav className="bg-white border-b border-umd-gray shadow-sm hidden md:block">
+          <div className="umd-container px-4 h-11 flex items-center justify-between">
+            {user ? (
+              <>
+                <div className="flex items-center gap-1">
+                  <Link to="/chat" className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActive('/chat') ? 'bg-umd-red text-white' : 'text-umd-body hover:bg-umd-gray-light'}`}>Chat</Link>
+                  <Link to="/menu" className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActive('/menu') ? 'bg-umd-red text-white' : 'text-umd-body hover:bg-umd-gray-light'}`}>Menu</Link>
+                  <Link to="/recipe" className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActive('/recipe') ? 'bg-umd-red text-white' : 'text-umd-body hover:bg-umd-gray-light'}`}>Recipes</Link>
+                  <Link to="/tracker" className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActive('/tracker') ? 'bg-umd-red text-white' : 'text-umd-body hover:bg-umd-gray-light'}`}>Tracker</Link>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-umd-body text-sm truncate max-w-[120px]">{user.email.split('@')[0]}</span>
+                  <button onClick={logout} className="text-umd-gray-dark hover:text-umd-red text-sm underline whitespace-nowrap">
+                    Logout
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2 ml-auto">
+                <Link to="/login" className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActive('/login') ? 'bg-umd-red text-white' : 'text-umd-body hover:bg-umd-gray-light'}`}>Log In</Link>
+                <Link to="/register" className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActive('/register') ? 'bg-umd-red text-white' : 'text-umd-body hover:bg-umd-gray-light'}`}>Sign Up</Link>
               </div>
-              <div className="flex items-center gap-3">
-                <span className="text-umd-body text-sm truncate max-w-[120px]">{user.email.split('@')[0]}</span>
-                <button onClick={logout} className="text-umd-gray-dark hover:text-umd-red text-sm underline whitespace-nowrap">
-                  Logout
-                </button>
-              </div>
-            </>
-          ) : (
-            <div className="flex items-center gap-2 ml-auto">
-              <Link to="/login" className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActive('/login') ? 'bg-umd-red text-white' : 'text-umd-body hover:bg-umd-gray-light'}`}>Log In</Link>
-              <Link to="/register" className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors ${isActive('/register') ? 'bg-umd-red text-white' : 'text-umd-body hover:bg-umd-gray-light'}`}>Sign Up</Link>
-            </div>
-          )}
-        </div>
-      </nav>
+            )}
+          </div>
+        </nav>
+      )}
 
       {/* mobile menu */}
-      {mobileOpen && (
+      {mobileOpen && !(hideAuthLinks && !user) && (
         <div className="md:hidden bg-umd-red-dark border-t border-white/10 px-4 py-3 flex flex-col gap-1 z-50 relative">
           {user ? (
             <>

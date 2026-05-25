@@ -399,7 +399,57 @@ export default function MenuPage() {
       {loading ? (
         <div className="text-center py-16 text-umd-body">Loading menu...</div>
       ) : !data || halls.length === 0 ? (
-        <div className="text-center py-16 text-umd-body">No menu data available for this date.</div>
+        <div className="flex flex-col items-center text-center py-16 px-4">
+          <div className="text-6xl mb-4">🌴🐢</div>
+          <h2 className="text-2xl umd-hero-title text-umd-black mb-2">Terps are enjoying their summer!</h2>
+          <p className="text-umd-body text-sm max-w-md mb-6">
+            No menus posted for <span className="font-semibold text-umd-black">{date}</span>. See you during the semester!
+          </p>
+
+          <div className="flex items-center gap-2 mb-4">
+            <button
+              onClick={() => {
+                const d = new Date(date + 'T12:00:00');
+                d.setDate(d.getDate() - 1);
+                setDate(localDateStr(d));
+              }}
+              className="p-2 rounded-lg hover:bg-umd-gray-light transition-colors"
+              title="Previous day"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => { if (e.target.value) setDate(e.target.value); }}
+              className="border border-umd-gray rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-umd-red"
+            />
+            <button
+              onClick={() => {
+                const d = new Date(date + 'T12:00:00');
+                d.setDate(d.getDate() + 1);
+                setDate(localDateStr(d));
+              }}
+              className="p-2 rounded-lg hover:bg-umd-gray-light transition-colors"
+              title="Next day"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          {date !== today && (
+            <button
+              onClick={() => setDate(today)}
+              className="px-4 py-2 rounded-lg text-sm font-semibold bg-umd-red text-white hover:bg-umd-red-dark transition-colors"
+            >
+              Back to today
+            </button>
+          )}
+        </div>
       ) : !activeHall ? (
         <div className="flex flex-col items-center py-16">
           <div className="text-5xl mb-4">🐢</div>
@@ -423,16 +473,14 @@ export default function MenuPage() {
                 onClick={() => {
                   const d = new Date(date + 'T12:00:00');
                   d.setDate(d.getDate() - 1);
-                  const prev = localDateStr(d);
-                  if (prev >= today) setDate(prev);
+                  setDate(localDateStr(d));
                 }}
-                disabled={date <= today}
-                className={`p-1.5 sm:p-2 rounded-lg transition-colors ${date <= today ? 'opacity-30 cursor-not-allowed' : 'hover:bg-umd-gray-light'}`}>
+                className="p-1.5 sm:p-2 rounded-lg transition-colors hover:bg-umd-gray-light">
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               </button>
-              <input type="date" value={date} min={today}
-                onChange={(e) => { const v = e.target.value; setDate(v < today ? today : v); }}
+              <input type="date" value={date}
+                onChange={(e) => { if (e.target.value) setDate(e.target.value); }}
                 className="border border-umd-gray rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-umd-red" />
               <button onClick={() => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + 1); setDate(localDateStr(d)); }}
                 className="p-1.5 sm:p-2 hover:bg-umd-gray-light rounded-lg transition-colors">
