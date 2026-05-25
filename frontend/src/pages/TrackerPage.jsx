@@ -1,25 +1,50 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { apiGet, apiPost, apiDelete } from '../api';
+import { apiGet, apiPost, apiPut, apiDelete } from '../api';
 import DailySummary from '../components/DailySummary';
 import MealSection from '../components/MealSection';
 import { useNavigationState } from '../context/NavigationStateContext';
 
 const MEALS = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+const GOALS_LS_KEY = 'tracker_goals';
 
 function localDateStr(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
-function loadGoals() {
+function loadGoalsLocal() {
   try {
-    const raw = localStorage.getItem('tracker_goals');
+    const raw = localStorage.getItem(GOALS_LS_KEY);
     if (raw) return JSON.parse(raw);
   } catch {}
   return null;
 }
 
-function saveGoals(g) {
-  localStorage.setItem('tracker_goals', JSON.stringify(g));
+function saveGoalsLocal(g) {
+  if (g) localStorage.setItem(GOALS_LS_KEY, JSON.stringify(g));
+  else localStorage.removeItem(GOALS_LS_KEY);
+}
+
+function goalsFromApi(d) {
+  return {
+    calories: d?.calories || 0,
+    protein: d?.protein_g || 0,
+    fat: d?.total_fat_g || 0,
+    carbs: d?.total_carbs_g || 0,
+  };
+}
+
+function goalsToApi(g) {
+  return {
+    calories: g?.calories || 0,
+    protein_g: g?.protein || 0,
+    total_fat_g: g?.fat || 0,
+    total_carbs_g: g?.carbs || 0,
+  };
+}
+
+function goalsEmpty(g) {
+  if (!g) return true;
+  return Object.values(g).every((v) => !v);
 }
 
 export default function TrackerPage() {
@@ -40,10 +65,44 @@ export default function TrackerPage() {
 
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [goals, setGoals] = useState(loadGoals);
+  const [goals, setGoals] = useState(loadGoalsLocal);
   const [celebrate, setCelebrate] = useState(false);
   const prevGoalsHit = useRef(false);
   const isToday = date === today;
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp = await apiGet('/api/tracker/goals');
+        if (cancelled) return;
+        const fromServer = goalsFromApi(resp);
+        if (goalsEmpty(fromServer)) {
+          const local = loadGoalsLocal();
+          if (!goalsEmpty(local)) {
+            apiPut('/api/tracker/goals', goalsToApi(local)).catch(() => {});
+            setGoals(local);
+          } else {
+            setGoals(null);
+            saveGoalsLocal(null);
+          }
+        } else {
+          setGoals(fromServer);
+          saveGoalsLocal(fromServer);
+        }
+      } catch {
+        /* keep localStorage cache as-is */
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  function persistGoals(next) {
+    const hasAny = next && Object.values(next).some((v) => v > 0);
+    setGoals(hasAny ? next : null);
+    saveGoalsLocal(hasAny ? next : null);
+    apiPut('/api/tracker/goals', goalsToApi(hasAny ? next : null)).catch(() => {});
+  }
 
   const hasLoaded = useRef(false);
 
@@ -223,16 +282,10 @@ export default function TrackerPage() {
           goals={goals || { calories: 0, protein: 0, fat: 0, carbs: 0 }}
           onSave={(g) => {
             const cleaned = { calories: g.calories || 0, protein: g.protein || 0, fat: g.fat || 0, carbs: g.carbs || 0 };
-            if (Object.values(cleaned).every((v) => v === 0)) {
-              setGoals(null);
-              localStorage.removeItem('tracker_goals');
-            } else {
-              setGoals(cleaned);
-              saveGoals(cleaned);
-            }
+            persistGoals(cleaned);
             setShowGoalEditor(false);
           }}
-          onClear={() => { setGoals(null); localStorage.removeItem('tracker_goals'); setShowGoalEditor(false); }}
+          onClear={() => { persistGoals(null); setShowGoalEditor(false); }}
           onClose={() => setShowGoalEditor(false)}
         />
       )}

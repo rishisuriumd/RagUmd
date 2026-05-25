@@ -38,3 +38,16 @@ export async function apiDelete(path) {
   }
   return null;
 }
+
+export async function apiPut(path, body) {
+  const res = await fetch(`${API}${path}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || res.statusText);
+  }
+  return res.json();
+}
