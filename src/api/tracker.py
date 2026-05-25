@@ -49,6 +49,45 @@ def _ensure_portion_label_column(conn):
         conn.commit()
 
 
+def _ensure_user_goals_table(conn):
+    """Migration — create user_goals if older DB is missing it."""
+    conn.execute(
+        """\
+        CREATE TABLE IF NOT EXISTS user_goals (
+            user_id       INTEGER NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+            calories      INTEGER NOT NULL DEFAULT 0,
+            protein_g     REAL    NOT NULL DEFAULT 0,
+            total_fat_g   REAL    NOT NULL DEFAULT 0,
+            total_carbs_g REAL    NOT NULL DEFAULT 0,
+            updated_at    TEXT    NOT NULL
+        )
+        """
+    )
+    conn.commit()
+
+
+EMPTY_GOALS = {"calories": 0, "protein_g": 0.0, "total_fat_g": 0.0, "total_carbs_g": 0.0}
+
+
+@router.get("/goals")
+def get_goals(user=Depends(get_current_user), conn=Depends(get_db)):
+    """Return the current user's daily macro goals (zeros if unset)."""
+    _ensure_user_goals_table(conn)
+    row = conn.execute(
+        "SELECT calories, protein_g, total_fat_g, total_carbs_g "
+        "FROM user_goals WHERE user_id = ?",
+        (user["id"],),
+    ).fetchone()
+    if not row:
+        return dict(EMPTY_GOALS)
+    return {
+        "calories": row["calories"],
+        "protein_g": row["protein_g"],
+        "total_fat_g": row["total_fat_g"],
+        "total_carbs_g": row["total_carbs_g"],
+    }
+
+
 @router.post("/logs", status_code=status.HTTP_201_CREATED)
 def log_food(body: LogFoodRequest, user=Depends(get_current_user), conn=Depends(get_db)):
     _ensure_portion_label_column(conn)
