@@ -7,9 +7,32 @@ Usage:
 
 from __future__ import annotations
 
+import logging
+import os
+
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
+
+
+def _guard_langsmith_tracing() -> None:
+    """Disable LangSmith tracing when the API key is missing or a placeholder.
+
+    Avoids the noisy 403 spam in logs when the .env still has the example value.
+    """
+    key = (os.getenv("LANGSMITH_API_KEY") or "").strip()
+    placeholder = (not key) or key.endswith("...") or key in {"lsv2_pt_", "your-key-here"}
+    if placeholder:
+        for var in ("LANGSMITH_TRACING", "LANGCHAIN_TRACING_V2", "LANGCHAIN_TRACING"):
+            os.environ[var] = "false"
+        os.environ.pop("LANGSMITH_API_KEY", None)
+        os.environ.pop("LANGCHAIN_API_KEY", None)
+        logging.getLogger(__name__).info(
+            "LangSmith tracing disabled (LANGSMITH_API_KEY is missing or placeholder)."
+        )
+
+
+_guard_langsmith_tracing()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
