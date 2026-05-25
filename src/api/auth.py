@@ -1,16 +1,25 @@
-"""Auth routes — register, login, me."""
+"""Auth routes — register, login, me, change-password, forgot/reset password."""
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+import logging
+import os
+import secrets
+from datetime import datetime, timedelta, timezone
 
 import bcrypt
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 
 from src.api.deps import create_access_token, get_current_user, get_db
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+log = logging.getLogger(__name__)
+
+PASSWORD_RESET_TTL = timedelta(hours=1)
+PASSWORD_MIN_LEN = 6
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:5173")
 
 
 def _hash_password(password: str) -> str:
@@ -83,3 +92,139 @@ def login(body: LoginRequest, conn=Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def me(user=Depends(get_current_user)):
     return UserResponse(**user)
+
+
+def _ensure_password_resets_table(conn):
+    """Migration — create password_resets if it does not exist."""
+    conn.execute(
+        """\
+        CREATE TABLE IF NOT EXISTS password_resets (
+            token      TEXT    NOT NULL PRIMARY KEY,
+            user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            expires_at TEXT    NOT NULL,
+            used_at    TEXT,
+            created_at TEXT    NOT NULL
+        )
+        """
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets (user_id)"
+    )
+    conn.commit()
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str = Field(..., min_length=PASSWORD_MIN_LEN)
+
+
+@router.post("/change-password")
+def change_password(
+    body: ChangePasswordRequest,
+    user=Depends(get_current_user),
+    conn=Depends(get_db),
+):
+    """Change the current user's password after verifying the existing one."""
+    row = conn.execute(
+        "SELECT password_hash FROM users WHERE id = ?", (user["id"],)
+    ).fetchone()
+    if not row or not _verify_password(body.current_password, row["password_hash"]):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect",
+        )
+    if body.current_password == body.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different",
+        )
+    conn.execute(
+        "UPDATE users SET password_hash = ? WHERE id = ?",
+        (_hash_password(body.new_password), user["id"]),
+    )
+    conn.commit()
+    return {"ok": True}
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+@router.post("/forgot-password")
+def forgot_password(body: ForgotPasswordRequest, conn=Depends(get_db)):
+    """Kick off a password-reset flow.
+
+    Always returns 200 so the client can't probe for which emails are registered.
+    If the email matches a real user, a single-use token is generated and the
+    reset link is logged on the server. Plug in an email transport (Resend,
+    SendGrid, SMTP, etc.) to actually deliver the link.
+    """
+    _ensure_password_resets_table(conn)
+
+    row = conn.execute(
+        "SELECT id, email FROM users WHERE email = ?", (body.email,)
+    ).fetchone()
+    if row:
+        token = secrets.token_urlsafe(32)
+        now = datetime.now(timezone.utc)
+        expires_at = (now + PASSWORD_RESET_TTL).isoformat()
+        conn.execute(
+            "INSERT INTO password_resets (token, user_id, expires_at, created_at) "
+            "VALUES (?, ?, ?, ?)",
+            (token, row["id"], expires_at, now.isoformat()),
+        )
+        conn.commit()
+        reset_link = f"{FRONTEND_BASE_URL}/reset-password?token={token}"
+        log.warning(
+            "Password reset requested for %s — link (TODO: email this): %s",
+            row["email"],
+            reset_link,
+        )
+
+    return {"ok": True}
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str = Field(..., min_length=PASSWORD_MIN_LEN)
+
+
+@router.post("/reset-password")
+def reset_password(body: ResetPasswordRequest, conn=Depends(get_db)):
+    """Consume a reset token and set a new password."""
+    _ensure_password_resets_table(conn)
+
+    row = conn.execute(
+        "SELECT pr.user_id, pr.expires_at, pr.used_at, u.email "
+        "FROM password_resets pr JOIN users u ON u.id = pr.user_id "
+        "WHERE pr.token = ?",
+        (body.token,),
+    ).fetchone()
+    if not row:
+        raise HTTPException(status_code=400, detail="Invalid or expired reset token")
+    if row["used_at"]:
+        raise HTTPException(status_code=400, detail="This reset link has already been used")
+    try:
+        expires = datetime.fromisoformat(row["expires_at"])
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid reset token")
+    if expires < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="This reset link has expired")
+
+    now = datetime.now(timezone.utc).isoformat()
+    conn.execute(
+        "UPDATE users SET password_hash = ? WHERE id = ?",
+        (_hash_password(body.new_password), row["user_id"]),
+    )
+    conn.execute(
+        "UPDATE password_resets SET used_at = ? WHERE token = ?",
+        (now, body.token),
+    )
+    conn.commit()
+
+    token = create_access_token({"sub": str(row["user_id"])})
+    return {
+        "access_token": token,
+        "token_type": "bearer",
+        "user": {"id": row["user_id"], "email": row["email"]},
+    }
