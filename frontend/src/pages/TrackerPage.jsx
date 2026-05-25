@@ -187,8 +187,8 @@ export default function TrackerPage() {
             </svg>
           </button>
           {!isToday && (
-            <button onClick={() => setDate(today)} className="text-xs text-umd-red font-semibold hover:underline ml-1">
-              Today
+            <button onClick={() => setDate(today)} className="text-xs text-umd-red font-semibold hover:underline ml-1 whitespace-nowrap">
+              Return to current day
             </button>
           )}
 
