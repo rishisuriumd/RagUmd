@@ -132,6 +132,15 @@ CREATE TABLE IF NOT EXISTS user_favorite_foods (
 
 CREATE INDEX IF NOT EXISTS idx_user_favorites_user
     ON user_favorite_foods (user_id);
+
+CREATE TABLE IF NOT EXISTS user_goals (
+    user_id       INTEGER NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    calories      INTEGER NOT NULL DEFAULT 0,
+    protein_g     REAL    NOT NULL DEFAULT 0,
+    total_fat_g   REAL    NOT NULL DEFAULT 0,
+    total_carbs_g REAL    NOT NULL DEFAULT 0,
+    updated_at    TEXT    NOT NULL
+);
 """
 
 
@@ -155,6 +164,7 @@ def init_db(conn: sqlite3.Connection) -> None:
         )
     conn.commit()
     _ensure_user_favorites_table(conn)
+    _ensure_user_goals_table(conn)
 
 
 def _ensure_user_favorites_table(conn: sqlite3.Connection) -> None:
@@ -170,5 +180,21 @@ CREATE TABLE IF NOT EXISTS user_favorite_foods (
     )
     conn.execute(
         "CREATE INDEX IF NOT EXISTS idx_user_favorites_user ON user_favorite_foods (user_id)"
+    )
+    conn.commit()
+
+
+def _ensure_user_goals_table(conn: sqlite3.Connection) -> None:
+    """Migration for DBs created before user_goals existed."""
+    conn.execute(
+        """\
+CREATE TABLE IF NOT EXISTS user_goals (
+    user_id       INTEGER NOT NULL PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    calories      INTEGER NOT NULL DEFAULT 0,
+    protein_g     REAL    NOT NULL DEFAULT 0,
+    total_fat_g   REAL    NOT NULL DEFAULT 0,
+    total_carbs_g REAL    NOT NULL DEFAULT 0,
+    updated_at    TEXT    NOT NULL
+)"""
     )
     conn.commit()
