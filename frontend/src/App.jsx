@@ -5,6 +5,8 @@ import Navbar from './components/Navbar';
 import ErrorBoundary from './components/ErrorBoundary';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import ChatPage from './pages/ChatPage';
 import MenuPage from './pages/MenuPage';
 import RecipePage from './pages/RecipePage';
@@ -28,6 +30,8 @@ function AppRoutes() {
       <Routes>
         <Route path="/login" element={user ? <Navigate to="/chat" /> : <LoginPage />} />
         <Route path="/register" element={user ? <Navigate to="/chat" /> : <RegisterPage />} />
+        <Route path="/forgot-password" element={user ? <Navigate to="/chat" /> : <ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/chat" element={<ProtectedRoute><ChatPage /></ProtectedRoute>} />
         <Route path="/menu" element={<ProtectedRoute><MenuPage /></ProtectedRoute>} />
         <Route path="/recipe" element={<ProtectedRoute><RecipePage /></ProtectedRoute>} />

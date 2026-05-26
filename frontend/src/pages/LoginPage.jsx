@@ -67,6 +67,12 @@ export default function LoginPage() {
           </button>
         </form>
 
+        <div className="mt-4 text-center">
+          <Link to="/forgot-password" className="text-xs text-umd-body hover:text-umd-red hover:underline">
+            Forgot password?
+          </Link>
+        </div>
+
         <p className="mt-6 text-center text-sm text-umd-body">
           Don't have an account?{' '}
           <Link to="/register" className="text-umd-red font-semibold hover:underline">
