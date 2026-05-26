@@ -4,8 +4,6 @@ UMD dining hall app. Check menus, track macros, get recipe ideas, and ask questi
 
 ## Screenshots
 
-> Drop screenshots into `docs/screenshots/` and they'll render here.
-
 | Menu | Tracker |
 |---|---|
 | ![Menu](docs/screenshots/menu.png) | ![Tracker](docs/screenshots/tracker.png) |
@@ -31,7 +29,6 @@ UMD dining hall app. Check menus, track macros, get recipe ideas, and ask questi
 | Agent    | LangChain + LangGraph, OpenAI |
 | Scraping | BeautifulSoup, requests |
 | Data     | nutrition.umd.edu |
-| iOS      | SwiftUI client in `ios/` |
 
 ## Structure
 
@@ -47,8 +44,6 @@ frontend/src/
 ├── pages/        # Chat, Menu, Recipe, Tracker, Login, Register
 ├── components/   # Navbar, FoodSearch, DailySummary, ErrorBoundary, etc.
 └── context/      # AuthProvider, NavigationStateProvider
-
-ios/              # SwiftUI app that talks to the same FastAPI backend
 ```
 
 ## Running it locally
