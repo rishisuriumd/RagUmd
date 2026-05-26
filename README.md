@@ -1,6 +1,6 @@
 # 🐢 TerpDining
 
-UMD dining hall app. Check menus, track macros, get recipe ideas, and ask questions about dining — all from one place.
+UMD dining hall app. Check menus, track macros, get recipe ideas, and ask questions about dining, all from one place.
 
 ## Screenshots
 
@@ -14,11 +14,11 @@ UMD dining hall app. Check menus, track macros, get recipe ideas, and ask questi
 
 ## What it does
 
-- **Menu** — see what's at each dining hall by meal and station. Badges flag dietary tags (vegan, halal, allergens, etc.). Date picker lets you browse any day; out-of-semester dates show a friendly summer message.
-- **Favorites** — heart any menu item to track it across days. Get an alert when a favorite is back on the menu.
-- **Chat** — ask questions about menus, nutrition, hours, whatever. Remembers your conversation.
-- **Recipes** — pick a dining hall and meal, it suggests recipes you can actually make from what's available right now.
-- **Tracker** — log food with portion sizes that make sense (slices of pizza, scoops of ice cream — not just "servings"). Donut chart shows your macros. Daily goals persist server-side across devices.
+- **Menu**: see what's at each dining hall by meal and station. Badges flag dietary tags (vegan, halal, allergens, etc.). The date picker lets you browse any day, and out-of-semester dates show a friendly summer message instead of an empty page.
+- **Favorites**: heart any menu item to follow it across days. The app pings you when a favorite shows back up on the menu.
+- **Chat**: ask questions about menus, nutrition, hours, anything dining-related. Conversations are saved so you can pick up where you left off.
+- **Recipes**: pick a dining hall and meal, and the recipe creator suggests dishes you can actually assemble from what's available that day.
+- **Tracker**: log food with realistic portion sizes (slices of pizza, scoops of ice cream, not just "servings"). A donut chart shows your daily macros, and your goals persist server-side so they follow you across devices.
 
 ## Stack
 
@@ -62,8 +62,8 @@ pip install -r requirements.txt
 
 # env
 cp .env.example .env
-# fill in OPENAI_API_KEY (LangSmith keys are optional — leave the placeholder
-# and tracing will auto-disable so you don't get 403 spam in logs)
+# fill in OPENAI_API_KEY (LangSmith keys are optional. Leave the placeholder
+# and tracing will auto-disable so you don't get 403 spam in logs.)
 
 # scrape menu data (skip if you already have umd_dining.db)
 python run_scraper.py
