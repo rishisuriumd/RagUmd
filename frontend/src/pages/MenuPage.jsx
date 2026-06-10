@@ -285,6 +285,11 @@ function FavoritesManager({ favorites, onRemove, onClose }) {
 
 export default function MenuPage() {
   const today = localDateStr();
+  const maxDate = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 14);
+    return localDateStr(d);
+  })();
   const { menu, patchMenu } = useNavigationState();
   const date = menu.date ?? today;
   const setDate = (v) => patchMenu({ date: v });
@@ -451,6 +456,7 @@ export default function MenuPage() {
             <input
               type="date"
               value={date}
+              max={maxDate}
               onChange={(e) => { if (e.target.value) setDate(e.target.value); }}
               className="border border-umd-gray rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-umd-red"
             />
@@ -507,7 +513,7 @@ export default function MenuPage() {
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
               </button>
-              <input type="date" value={date}
+              <input type="date" value={date} max={maxDate}
                 onChange={(e) => { if (e.target.value) setDate(e.target.value); }}
                 className="border border-umd-gray rounded-lg px-2 sm:px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-umd-red" />
               <button onClick={() => { const d = new Date(date + 'T12:00:00'); d.setDate(d.getDate() + 1); setDate(localDateStr(d)); }}
