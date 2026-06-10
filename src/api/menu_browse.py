@@ -55,6 +55,9 @@ def browse_menu(dt: str = Query(default=None)):
                 "tags": tag_cache.get(r["food_item_id"], []),
             })
 
-        return {"date": menu_date, "halls": halls}
+        latest_row = conn.execute("SELECT MAX(date) AS latest FROM menu_entries").fetchone()
+        latest_date = latest_row["latest"] if latest_row else None
+
+        return {"date": menu_date, "halls": halls, "latest_date": latest_date}
     finally:
         conn.close()

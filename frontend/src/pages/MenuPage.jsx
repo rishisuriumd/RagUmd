@@ -28,6 +28,15 @@ function localDateStr(d = new Date()) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
+function isTooFarAhead(date, today, latestMenuDate) {
+  if (!latestMenuDate || date <= latestMenuDate) return false;
+  if (latestMenuDate >= today) return true;
+  const latest = new Date(`${latestMenuDate}T12:00:00`);
+  const todayD = new Date(`${today}T12:00:00`);
+  const daysBehind = (todayD - latest) / 86400000;
+  return date >= today && daysBehind <= 14;
+}
+
 function BadgeCircle({ tag, size = 'sm' }) {
   const b = ALL_BADGES[tag];
   if (!b) return null;
@@ -393,17 +402,36 @@ export default function MenuPage() {
   const halls = data ? Object.keys(data.halls).sort() : [];
   const meals = data && activeHall && data.halls[activeHall]
     ? MEAL_ORDER.filter((m) => Object.keys(data.halls[activeHall]).includes(m)) : [];
-
+  const tooFarAhead = isTooFarAhead(date, today, data?.latest_date);
   return (
     <div className="umd-container px-4 py-6 space-y-5">
       {loading ? (
         <div className="text-center py-16 text-umd-body">Loading menu...</div>
       ) : !data || halls.length === 0 ? (
         <div className="flex flex-col items-center text-center py-16 px-4">
-          <div className="text-6xl mb-4">🌴🐢</div>
-          <h2 className="text-2xl umd-hero-title text-umd-black mb-2">Terps are enjoying their summer!</h2>
+          <div className="text-6xl mb-4">{tooFarAhead ? '📅🐢' : '🌴🐢'}</div>
+          <h2 className="text-2xl umd-hero-title text-umd-black mb-2">
+            {tooFarAhead ? "You're too far ahead!" : 'Terps are enjoying their summer!'}
+          </h2>
           <p className="text-umd-body text-sm max-w-md mb-6">
-            No menus posted for <span className="font-semibold text-umd-black">{date}</span>. See you during the semester!
+            {tooFarAhead ? (
+              <>
+                UMD hasn&apos;t posted menus for{' '}
+                <span className="font-semibold text-umd-black">{date}</span> yet. Try an earlier date
+                {data?.latest_date ? (
+                  <> — menus are available through{' '}
+                    <span className="font-semibold text-umd-black">{data.latest_date}</span>.</>
+                ) : '.'}
+              </>
+            ) : date === today ? (
+              <>
+                No menus posted for today <span className="font-semibold text-umd-black"></span>. See you during the semester!
+              </>
+            ) : (
+              <>
+                No menus posted for this day <span className="font-semibold text-umd-black"></span>. See you during the semester!
+              </>
+            )}
           </p>
 
           <div className="flex items-center gap-2 mb-4">
